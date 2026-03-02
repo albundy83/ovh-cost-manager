@@ -1,8 +1,10 @@
 # OVH Cost Manager - Docker Image
-FROM node:20-alpine
+# Multi-stage build: run npm/node natively on build host, avoid QEMU emulation
 
-# Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+# Stage 1: Build on the host platform (no QEMU)
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -13,21 +15,31 @@ COPY data/package*.json ./data/
 COPY server/package*.json ./server/
 COPY dashboard/package*.json ./dashboard/
 
-# Install dependencies without running install scripts (avoids native compilation under QEMU)
+# Install dependencies without native compilation scripts
 RUN npm install --ignore-scripts --production=false
 
-# Download prebuilt native binary for better-sqlite3 (supports amd64 + arm64 on Alpine musl)
-RUN cd /app/node_modules/better-sqlite3 && npx prebuild-install || \
-    { echo "ERROR: No prebuilt binary found for better-sqlite3 on this platform"; exit 1; }
+# Download prebuilt better-sqlite3 binary for the TARGET architecture
+RUN ARCH=$TARGETARCH; \
+    if [ "$ARCH" = "amd64" ]; then ARCH=x64; fi; \
+    cd /app/node_modules/better-sqlite3 && \
+    npx --yes prebuild-install --arch $ARCH --platform linux --libc musl || \
+    { echo "ERROR: No prebuilt binary found for better-sqlite3 ($TARGETARCH)"; exit 1; }
 
 # Copy source code
 COPY . .
 
-# Build frontend
+# Build frontend (pure JS bundling, runs natively)
 RUN npm run build
 
 # Remove dev dependencies after build
 RUN npm prune --production
+
+# Stage 2: Runtime image (target platform)
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app .
 
 # Make scripts executable
 RUN chmod +x /app/scripts/*.sh
