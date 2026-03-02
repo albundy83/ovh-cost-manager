@@ -1,8 +1,8 @@
 {
   "credentials": {
-    "appKey": "",
-    "appSecret": "",
-    "consumerKey": "",
+    "appKey": "YOUR_APP_KEY",
+    "appSecret": "YOUR_APP_SECRET",
+    "consumerKey": "YOUR_CONSUMER_KEY",
     "endpoint": "ovh-eu"
   },
   "dataDir": "/app/data",

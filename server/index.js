@@ -55,12 +55,12 @@ function getRateLimitConfig() {
     enabled: rateLimitConfig.enabled !== undefined ? rateLimitConfig.enabled : defaults.enabled,
     trustProxy: rateLimitConfig.trustProxy !== undefined ? rateLimitConfig.trustProxy : defaults.trustProxy,
     api: {
-      windowMs: rateLimitConfig.api?.windowMs || defaults.api.windowMs,
-      max: rateLimitConfig.api?.max || defaults.api.max
+      windowMs: rateLimitConfig.api?.windowMs ?? defaults.api.windowMs,
+      max: rateLimitConfig.api?.max ?? defaults.api.max
     },
     auth: {
-      windowMs: rateLimitConfig.auth?.windowMs || defaults.auth.windowMs,
-      max: rateLimitConfig.auth?.max || defaults.auth.max
+      windowMs: rateLimitConfig.auth?.windowMs ?? defaults.auth.windowMs,
+      max: rateLimitConfig.auth?.max ?? defaults.auth.max
     }
   };
 
@@ -72,16 +72,20 @@ function getRateLimitConfig() {
     merged.trustProxy = process.env.TRUST_PROXY === 'true';
   }
   if (process.env.RATE_LIMIT_API_WINDOW_MS) {
-    merged.api.windowMs = parseInt(process.env.RATE_LIMIT_API_WINDOW_MS, 10);
+    const val = parseInt(process.env.RATE_LIMIT_API_WINDOW_MS, 10);
+    if (!isNaN(val) && val > 0) merged.api.windowMs = val;
   }
   if (process.env.RATE_LIMIT_API_MAX) {
-    merged.api.max = parseInt(process.env.RATE_LIMIT_API_MAX, 10);
+    const val = parseInt(process.env.RATE_LIMIT_API_MAX, 10);
+    if (!isNaN(val) && val > 0) merged.api.max = val;
   }
   if (process.env.RATE_LIMIT_AUTH_WINDOW_MS) {
-    merged.auth.windowMs = parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS, 10);
+    const val = parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS, 10);
+    if (!isNaN(val) && val > 0) merged.auth.windowMs = val;
   }
   if (process.env.RATE_LIMIT_AUTH_MAX) {
-    merged.auth.max = parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10);
+    const val = parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10);
+    if (!isNaN(val) && val > 0) merged.auth.max = val;
   }
 
   return merged;
