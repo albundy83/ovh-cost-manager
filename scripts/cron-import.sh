@@ -34,7 +34,8 @@ done
 log "Server is ready"
 
 # Check if this is a fresh database (no bills yet)
-BILL_COUNT=$(wget -qO- http://localhost:3001/api/months 2>/dev/null | grep -c '"value"' 2>/dev/null || echo "0")
+BILL_COUNT=$(wget -qO- http://localhost:3001/api/months 2>/dev/null | grep -c '"value"' || true)
+BILL_COUNT=${BILL_COUNT:-0}
 
 if [ "$BILL_COUNT" -eq 0 ]; then
   log "No existing data found — running full import"
