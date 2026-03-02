@@ -192,18 +192,18 @@ Create `config.json` at project root or `$HOME/my-ovh-bills/config.json`:
 
 ## Rate Limiting
 
-Le serveur API intègre un système de rate limiting pour protéger contre les attaques DoS et les tentatives de brute-force. Cette protection est **activée par défaut** mais entièrement configurable.
+The API server includes rate limiting to protect against DoS attacks and brute-force attempts. This protection is **enabled by default** but fully configurable.
 
-### Limites par défaut
+### Default Limits
 
-| Endpoint  | Limite       | Fenêtre    | Par        |
+| Endpoint  | Limit        | Window     | Per        |
 | --------- | ------------ | ---------- | ---------- |
-| `/api/*`  | 100 requêtes | 15 minutes | Adresse IP |
-| `/auth/*` | 20 requêtes  | 15 minutes | Adresse IP |
+| `/api/*`  | 100 requests | 15 minutes | IP address |
+| `/auth/*` | 20 requests  | 15 minutes | IP address |
 
 ### Configuration via config.json
 
-Ajoutez une section `rateLimit` dans votre [config.json](config.json) :
+Add a `rateLimit` section to your [config.json](config.json):
 
 ```json
 {
@@ -224,35 +224,35 @@ Ajoutez une section `rateLimit` dans votre [config.json](config.json) :
 }
 ```
 
-**Paramètres** :
-- `enabled` : Activer/désactiver globalement (default: `true`)
-- `trustProxy` : Faire confiance aux headers `X-Forwarded-For` (default: `false`)
-- `api.windowMs` : Durée de la fenêtre en millisecondes (default: `900000` = 15 min)
-- `api.max` : Nombre maximum de requêtes API par IP sur la fenêtre (default: `100`)
-- `auth.windowMs` : Durée de la fenêtre pour les endpoints d'authentification (default: `900000`)
-- `auth.max` : Nombre maximum de requêtes d'authentification par IP (default: `20`)
+**Parameters**:
+- `enabled`: Enable/disable globally (default: `true`)
+- `trustProxy`: Trust `X-Forwarded-For` headers (default: `false`)
+- `api.windowMs`: Window duration in milliseconds (default: `900000` = 15 min)
+- `api.max`: Maximum API requests per IP per window (default: `100`)
+- `auth.windowMs`: Window duration for authentication endpoints (default: `900000`)
+- `auth.max`: Maximum authentication requests per IP (default: `20`)
 
-### Configuration via variables d'environnement
+### Configuration via Environment Variables
 
-Les variables d'environnement ont **priorité** sur [config.json](config.json) :
+Environment variables take **priority** over [config.json](config.json):
 
 ```bash
-# Activer/désactiver
+# Enable/disable
 RATE_LIMIT_ENABLED=true|false
 
-# Trust proxy (CRITIQUE pour Kubernetes/reverse proxy)
+# Trust proxy (CRITICAL for Kubernetes/reverse proxy)
 TRUST_PROXY=true|false
 
-# Limites API
+# API limits
 RATE_LIMIT_API_WINDOW_MS=900000    # 15 minutes
-RATE_LIMIT_API_MAX=100             # 100 requêtes
+RATE_LIMIT_API_MAX=100             # 100 requests
 
-# Limites authentification
+# Authentication limits
 RATE_LIMIT_AUTH_WINDOW_MS=900000   # 15 minutes
-RATE_LIMIT_AUTH_MAX=20             # 20 requêtes
+RATE_LIMIT_AUTH_MAX=20             # 20 requests
 ```
 
-**Exemple Docker/Kubernetes** :
+**Docker/Kubernetes Example**:
 ```yaml
 environment:
   - TRUST_PROXY=true
@@ -260,15 +260,15 @@ environment:
   - RATE_LIMIT_AUTH_MAX=100
 ```
 
-### Désactiver le rate limiting
+### Disabling Rate Limiting
 
-Pour les applications internes sécurisées par un SSO en amont :
+For internal applications secured by upstream SSO:
 
 ```bash
-# Via variable d'environnement
+# Via environment variable
 RATE_LIMIT_ENABLED=false
 
-# Ou dans config.json
+# Or in config.json
 {
   "rateLimit": {
     "enabled": false
@@ -276,24 +276,24 @@ RATE_LIMIT_ENABLED=false
 }
 ```
 
-### ⚠️ IMPORTANT : Déploiements Kubernetes / Reverse Proxy
+### ⚠️ IMPORTANT: Kubernetes / Reverse Proxy Deployments
 
-**Problème** : Par défaut, le serveur identifie les clients par leur adresse IP. Derrière un reverse proxy (Ingress Kubernetes, Traefik, nginx), **toutes les requêtes** semblent provenir de la même IP (celle du proxy/ingress). Résultat : tous les utilisateurs partagent la même limite globale.
+**Problem**: By default, the server identifies clients by their IP address. Behind a reverse proxy (Kubernetes Ingress, Traefik, nginx), **all requests** appear to come from the same IP (the proxy/ingress IP). Result: all users share the same global limit.
 
-**Symptômes** :
-- Erreurs 429 "Too many requests" après seulement quelques dizaines de requêtes
-- Plusieurs utilisateurs sont bloqués simultanément
-- Le problème est amplifié si les utilisateurs passent par un VPN d'entreprise (IP unique)
+**Symptoms**:
+- 429 "Too many requests" errors after only a few dozen requests
+- Multiple users are blocked simultaneously
+- The problem is amplified if users connect through a corporate VPN (single IP)
 
-**Solution obligatoire** :
+**Required Solution**:
 
-Activez **impérativement** `trustProxy` pour que le serveur utilise le header `X-Forwarded-For` :
+You **must** enable `trustProxy` so the server uses the `X-Forwarded-For` header:
 
 ```bash
-# Via variable d'environnement (recommandé)
+# Via environment variable (recommended)
 TRUST_PROXY=true
 
-# Ou dans config.json
+# Or in config.json
 {
   "rateLimit": {
     "trustProxy": true
@@ -301,11 +301,11 @@ TRUST_PROXY=true
 }
 ```
 
-Une fois activé, chaque utilisateur est identifié par sa vraie adresse IP et dispose de sa propre limite.
+Once enabled, each user is identified by their real IP address and gets their own individual limit.
 
-**Alternative** : Si votre application est 100% interne et protégée par un SSO, vous pouvez désactiver complètement le rate limiting (`RATE_LIMIT_ENABLED=false`).
+**Alternative**: If your application is 100% internal and protected by SSO, you can completely disable rate limiting (`RATE_LIMIT_ENABLED=false`).
 
-> **Note** : Les headers `RateLimit-*` standard sont inclus dans les réponses pour indiquer les limites restantes. Consultez les headers `RateLimit-Limit`, `RateLimit-Remaining`, et `RateLimit-Reset`.
+> **Note**: Standard `RateLimit-*` headers are included in responses to indicate remaining limits. Check `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset` headers.
 
 ## Usage
 
